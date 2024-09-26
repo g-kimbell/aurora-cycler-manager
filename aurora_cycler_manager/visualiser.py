@@ -22,6 +22,8 @@ import json
 import gzip
 import sqlite3
 import pandas as pd
+import webbrowser
+from threading import Thread
 from datetime import datetime
 from scipy import stats
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -1040,4 +1042,7 @@ def update_correlation_graph(data, xvar, yvar, color, colormap):
     return fig
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    def start_dash_server():
+        app.run_server(debug=True, use_reloader=False)
+    Thread(target=start_dash_server).start()
+    webbrowser.open_new("http://localhost:8050")
