@@ -8,6 +8,7 @@ systems, both of individual samples and of batches of samples.
 
 import os
 import sys
+import time
 import dash
 from dash import dcc, html, Input, Output, State, no_update, dash_table
 import dash_bootstrap_components as dbc
@@ -31,8 +32,6 @@ if root_dir not in sys.path:
     sys.path.append(root_dir)
 from aurora_cycler_manager.analysis import combine_jobs, _run_from_sample
 
-app = dash.Dash(__name__)
-app.title = "Aurora Visualiser"
 
 #======================================================================================================================#
 #================================================ GLOBAL VARIABLES ====================================================#
@@ -49,6 +48,10 @@ unused_pipelines = config.get('Unused pipelines', [])
 
 # Graphs
 graph_template = 'seaborn'
+external_stylesheets = [dbc.themes.BOOTSTRAP]
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app.title = "Aurora Visualiser"
 
 #======================================================================================================================#
 #===================================================== FUNCTIONS ======================================================#
@@ -186,7 +189,7 @@ colorscales = px.colors.named_colorscales()
 samples_menu = html.Div(
     style = {'overflow': 'scroll', 'height': '100%'},
     children = [
-        html.H4("Select samples to plot:"),
+        html.H5("Select samples to plot:"),
         dcc.Dropdown(
             id='samples-dropdown',
             options=[
@@ -196,7 +199,7 @@ samples_menu = html.Div(
             multi=True,
         ),
         html.Div(style={'margin-top': '50px'}),
-        html.H4("Time graph"),
+        html.H5("Time graph"),
         html.Label('X-axis:', htmlFor='samples-time-x'),
         dcc.Dropdown(
             id='samples-time-x',
@@ -218,7 +221,7 @@ samples_menu = html.Div(
             multi=False,
         ),
         html.Div(style={'margin-top': '50px'}),
-        html.H4("Cycles graph"),
+        html.H5("Cycles graph"),
         html.P("X-axis: Cycle"),
         html.Label('Y-axis:', htmlFor='samples-cycles-y'),
         dcc.Dropdown(
@@ -231,7 +234,7 @@ samples_menu = html.Div(
             multi=False,
         ),
         html.Div(style={'margin-top': '50px'}),
-        html.H4("One cycle graph"),
+        html.H5("One cycle graph"),
         html.Label("X-axis:", htmlFor='samples-cycle-x'),
         dcc.Dropdown(
             id='samples-cycle-x',
@@ -252,7 +255,7 @@ samples_menu = html.Div(
 batches_menu = html.Div(
     style = {'overflow': 'scroll', 'height': '100%'},
     children = [
-        html.H4("Select batches to plot:"),
+        html.H5("Select batches to plot:"),
         dcc.Dropdown(
             id='batches-dropdown',
             options=[
@@ -262,7 +265,7 @@ batches_menu = html.Div(
             multi=True,
         ),
         html.Div(style={'margin-top': '50px'}),
-        html.H4("Cycles graph"),
+        html.H5("Cycles graph"),
         html.P("X-axis: Cycle"),
         html.Label("Y-axis:", htmlFor='batch-cycle-y'),
         dcc.Dropdown(
@@ -295,7 +298,7 @@ batches_menu = html.Div(
             multi=False,
         ),
         html.Div(style={'margin-top': '50px'}),
-        html.H4("Correlation graph"),
+        html.H5("Correlation graph"),
         html.Label("X-axis:", htmlFor='batch-correlation-x'),
         dcc.Dropdown(
             id='batch-correlation-x',
@@ -351,7 +354,7 @@ app.layout = html.Div(
                                             id="samples-menu",
                                             className="menu-panel",
                                             children=samples_menu,
-                                            defaultSizePercentage=20,
+                                            defaultSizePercentage=16,
                                             collapsible=True,
                                         ),
                                         PanelResizeHandle(html.Div(className="resize-handle-horizontal")),
@@ -436,7 +439,7 @@ app.layout = html.Div(
                                         id="batches-menu",
                                         className="menu-panel",
                                         children=batches_menu,
-                                        defaultSizePercentage=20,
+                                        defaultSizePercentage=16,
                                         collapsible=True,
                                     ),
                                     PanelResizeHandle(html.Div(className="resize-handle-horizontal")),
@@ -529,6 +532,7 @@ app.layout = html.Div(
                                 dcc.Loading(
                                     id='loading-database',
                                     type='circle',
+                                    delay_show=200,
                                     overlay_style={"visibility":"visible", "filter": "blur(2px)"},
                                     style={'height': '100%'},
                                     children=[
@@ -539,11 +543,11 @@ app.layout = html.Div(
                                                 # Button to update the database
                                                 html.P(children = f"Last refreshed: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}", id='last-refreshed'),
                                                 html.P(children = f"Last updated: unknown", id='last-updated'),
-                                                html.Button("Refresh database", id='refresh-database'),
-                                                # html.Button("Force update database", id='update-database'), # TODO
+                                                dbc.Button("Refresh database", id='refresh-database', color='primary', outline=True, className='me-1'),
+                                                dbc.Button("Force update database", id='update-database', color='warning', outline=True, className='me-1'),
                                                 html.Div(style={'margin-top': '10px'}),
                                                 # Buttons to select which table to display
-                                                dcc.RadioItems(
+                                                dbc.RadioItems(
                                                     id='table-select',
                                                     inline=True,
                                                     options=[
@@ -558,10 +562,35 @@ app.layout = html.Div(
                                                 dag.AgGrid(
                                                     id='table',
                                                     dashGridOptions = {"enableCellTextSelection": False, "tooltipShowDelay": 1000, 'rowSelection': 'multiple'},
-                                                    style={"height": "calc(90vh - 200px)", "width": "100%", "minHeight": "400px"},
+                                                    style={"height": "calc(90vh - 220px)", "width": "100%", "minHeight": "400px"},
                                                 ),
+                                                dbc.Button("Load", id='load-button', color='primary', outline=True, className='me-1'),
+                                                dbc.Button("Eject", id='eject-button', color='primary', outline=True, className='me-1'),
+                                                dbc.Button("Ready", id='ready-button', color='primary', outline=True, className='me-1'),
+                                                dbc.Button("Unready", id='unready-button', color='primary', outline=True, className='me-1'),
+                                                dbc.Button("Submit", id='submit-button', color='primary', outline=True, className='me-1'),
+                                                dbc.Button("Cancel", id='cancel-button', color='danger', outline=True, className='me-1'),
+                                                
                                             ]
-                                        )
+                                        ),
+                                        dbc.Modal(
+                                            [
+                                                dbc.ModalHeader(dbc.ModalTitle("Eject")),
+                                                dbc.ModalBody(id='eject-modal-body',children="Are you sure you want eject the selected samples?"),
+                                                dbc.ModalFooter(
+                                                    [
+                                                        dbc.Button(
+                                                            "Yes", id="eject-yes-close", className="ms-auto", n_clicks=0
+                                                        ),
+                                                        dbc.Button(
+                                                            "No", id="eject-no-close", className="ms-auto", n_clicks=0
+                                                        ),
+                                                    ]
+                                                ),
+                                            ],
+                                            id="eject-modal",
+                                            is_open=False,
+                                        ),
                                     ]
                                 )
                             ]
@@ -569,9 +598,11 @@ app.layout = html.Div(
                     ]
                 )
             ]
-        )
+        ),
     ]
 )
+
+
 
 #======================================================================================================================#
 #===================================================== CALLBACKS ======================================================#
@@ -581,13 +612,32 @@ app.layout = html.Div(
 @app.callback(
     Output('table', 'rowData'),
     Output('table', 'columnDefs'),
+    Output('load-button', 'style'),
+    Output('eject-button', 'style'),
+    Output('ready-button', 'style'),
+    Output('unready-button', 'style'),
+    Output('submit-button', 'style'),
+    Output('cancel-button', 'style'),
     Input('table-select', 'value'),
     Input('table-data-store', 'data'),
 )
 def update_table(table, data):
-    return data['data'][table], data['column_defs'][table]
-
-
+    load = {'display': 'none'}
+    eject = {'display': 'none'}
+    ready = {'display': 'none'}
+    unready = {'display': 'none'}
+    cancel = {'display': 'none'}
+    submit = {'display': 'none'}
+    if table == 'pipelines':
+        load = {'display': 'inline-block'}
+        eject = {'display': 'inline-block'}
+        ready = {'display': 'inline-block'}
+        unready = {'display': 'inline-block'}
+        cancel = {'display': 'inline-block'}
+        submit = {'display': 'inline-block'}
+    elif table == 'jobs':
+        cancel = {'display': 'inline-block'}
+    return data['data'][table], data['column_defs'][table], load, eject, ready, unready, submit, cancel
 
 @app.callback(
     Output('table-data-store', 'data'),
@@ -601,6 +651,71 @@ def refresh_database(n_clicks):
     db_data = get_database()
     return db_data, f"Last refreshed: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}", f"Last updated: {db_data['data']['pipelines'][0]['Last checked']}"
 
+# row selection button enable/disable
+@app.callback(
+    Output('load-button', 'disabled'),
+    Output('eject-button', 'disabled'),
+    Output('ready-button', 'disabled'),
+    Output('unready-button', 'disabled'),
+    Output('submit-button', 'disabled'),
+    Output('cancel-button', 'disabled'),
+    Input('table', 'selectedRows'),
+    State('table-select', 'value'),
+)
+def enable_buttons(selected_rows, table):
+    load, eject, ready, unready, submit, cancel = True,True,True,True,True,True
+    if not selected_rows:
+        return True, True, True, True, True, True
+    if table == 'pipelines':
+        if all([s['Sample ID'] is not None for s in selected_rows]):
+            eject = False
+            ready = False
+            unready = False
+            submit = False
+        if len(selected_rows)==1 and selected_rows[0]['Sample ID']==None:
+            load = False
+        if any([s['Job ID'] is not None for s in selected_rows]):
+            cancel = False
+    if table == 'jobs':
+        if all([s['Status'] in ['r','q','qw'] for s in selected_rows]):
+            cancel = False
+    return load, eject, ready, unready, submit, cancel
+
+# Eject button
+@app.callback(
+    Output("eject-modal", "is_open"),
+    Input('eject-button', 'n_clicks'),
+    Input('eject-yes-close', 'n_clicks'),
+    Input('eject-no-close', 'n_clicks'),
+    State('eject-modal', 'is_open'),
+    State('table', 'selectedRows'),
+)
+def eject_sample_button(eject_clicks, yes_clicks, no_clicks, is_open, selected_rows):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return is_open
+    button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    if button_id == 'eject-button':
+        return not is_open
+    elif button_id == 'eject-yes-close' and yes_clicks:
+        return False
+    elif button_id == 'eject-no-close' and no_clicks:
+        return False
+    return is_open, no_update, no_update, no_update
+# Eject function
+@app.callback(
+    Output('loading-database', 'children'),
+    Input('eject-yes-close', 'n_clicks'),
+    State('table-data-store', 'data'),
+    State('table', 'selectedRows'),
+    prevent_initial_call=True,
+)
+def eject_sample(yes_clicks, data, selected_rows):
+    if not yes_clicks:
+        return no_update
+    print(f"Ejecting samples {[s['Sample ID'] for s in selected_rows]}")
+    time.sleep(3)
+    return no_update
 #----------------------------- SAMPLES CALLBACKS ------------------------------#
 
 # TODO fix errors when data does not include any Formation C values
@@ -1043,6 +1158,8 @@ def update_correlation_graph(data, xvar, yvar, color, colormap):
 
 if __name__ == '__main__':
     def start_dash_server():
-        app.run_server(debug=True, use_reloader=False)
-    Thread(target=start_dash_server).start()
-    webbrowser.open_new("http://localhost:8050")
+        app.run_server(debug=True, use_reloader=True)
+    def start_web_browser():
+        webbrowser.open_new("http://localhost:8050")
+    Thread(target=start_web_browser).start()
+    start_dash_server()
