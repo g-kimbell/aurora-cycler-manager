@@ -28,7 +28,7 @@ import webbrowser
 from threading import Thread
 from datetime import datetime
 from scipy import stats
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if root_dir not in sys.path:
     sys.path.append(root_dir)
 from aurora_cycler_manager.server_manager import ServerManager
@@ -41,7 +41,7 @@ from aurora_cycler_manager.analysis import combine_jobs, _run_from_sample
 
 # Config file
 current_dir = os.path.dirname(os.path.abspath(__file__))
-config_path = os.path.join(current_dir, '..', 'config.json')
+config_path = os.path.join(current_dir, '..', '..', 'config.json')
 with open(config_path, encoding = 'utf-8') as f:
     config = json.load(f)
 db_path = config['Database path']
